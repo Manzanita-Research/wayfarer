@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const COLORS = {
   cream: '#FAF9F6',
@@ -12,6 +12,140 @@ const COLORS = {
   fog: '#E8E5DF',
   dusk: '#5C5C5C',
 };
+
+const SAMPLE_HOTELS = [
+  {
+    id: 'hotel-1',
+    name: 'The Marker',
+    neighborhood: 'Union Square',
+    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=250&fit=crop',
+    price: 289,
+    rating: 4.6,
+    nights: 3,
+  },
+  {
+    id: 'hotel-2',
+    name: 'Hotel Kabuki',
+    neighborhood: 'Japantown',
+    imageUrl: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=250&fit=crop',
+    price: 215,
+    rating: 4.4,
+    nights: 3,
+  },
+  {
+    id: 'hotel-3',
+    name: 'The Battery',
+    neighborhood: 'Financial District',
+    imageUrl: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=250&fit=crop',
+    price: 342,
+    rating: 4.8,
+    nights: 3,
+  },
+];
+
+const FLOW_NODES = {
+  user: { label: 'User' },
+  designSystem: { label: 'Your Components' },
+  registry: { label: 'Component Registry' },
+  llm: { label: 'LLM' },
+  stream: { label: 'Stream' },
+  parser: { label: 'Parser' },
+  renderer: { label: 'Renderer' },
+  ui: { label: 'Rendered UI' },
+  agent: { label: 'Agent' },
+  cloud: { label: 'Cloud Agent' },
+};
+
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return (
+    <div style={{
+      border: `1px solid ${COLORS.fog}`,
+      borderRadius: 10,
+      overflow: 'hidden',
+      background: '#fff',
+      transition: 'box-shadow 0.2s ease',
+    }}>
+      <div style={{
+        width: '100%',
+        height: 160,
+        background: `url(${imageUrl}) center/cover`,
+        borderBottom: `1px solid ${COLORS.fog}`,
+      }} />
+      <div style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{
+            fontFamily: "'Fraunces', Georgia, serif",
+            fontWeight: 600, fontSize: '1rem',
+            color: COLORS.warmBlack,
+            letterSpacing: '-0.02em',
+          }}>
+            {name}
+          </div>
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '0.7rem', color: COLORS.ochre,
+          }}>
+            {rating}
+          </div>
+        </div>
+        <div style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: '0.7rem', color: COLORS.dusk,
+          marginBottom: '0.75rem',
+        }}>
+          {neighborhood}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontWeight: 600, fontSize: '1.1rem',
+              color: COLORS.warmBlack,
+            }}>
+              ${price}
+            </span>
+            <span style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.65rem', color: COLORS.dusk,
+            }}>
+              {' '}/night · {nights} nights = ${price * nights}
+            </span>
+          </div>
+          <button
+            onClick={() => onBook?.()}
+            style={{
+              padding: '0.4rem 1rem',
+              background: COLORS.terracotta,
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Book Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HotelGrid({ hotels }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+      gap: '1rem',
+    }}>
+      {hotels.map(hotel => (
+        <HotelCard key={hotel.id} {...hotel} />
+      ))}
+    </div>
+  );
+}
 
 // Framework data
 const FRAMEWORKS = {
@@ -129,7 +263,122 @@ Line 3 → beginRendering:
         "No built-in component library — you bring your own renderers",
         "Requires understanding the adjacency list model and four message types",
       ]
-    }
+    },
+    componentDefinition: `── Your design system components ──
+// These exist already — your HotelCard, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with A2UI ──
+// Map A2UI component names to your renderers
+const rendererCatalog = {
+  "HotelCard": (props, dataModel) => (
+    <HotelCard
+      name={resolveBinding(props.name, dataModel)}
+      price={resolveBinding(props.price, dataModel)}
+      imageUrl={resolveBinding(props.imageUrl, dataModel)}
+      rating={resolveBinding(props.rating, dataModel)}
+      neighborhood={resolveBinding(props.neighborhood, dataModel)}
+      nights={resolveBinding(props.nights, dataModel)}
+      onBook={() => sendAction("bookHotel", {
+        hotelId: resolveBinding(props.hotelId, dataModel)
+      })}
+    />
+  ),
+  "HotelGrid": (props, children) => (
+    <HotelGrid>{children}</HotelGrid>
+  ),
+}
+
+// Data bindings use JSON Pointer paths
+// e.g. { "path": "/hotels/0/name" } → resolved at render time`,
+    wireFormat: `── A2UI Wire Format (JSONL stream) ──
+
+// Line 1: Component tree
+{"surfaceUpdate":{"surfaceId":"main","components":[
+  {"id":"grid","component":{"HotelGrid":{
+    "children":{"explicitList":["c1","c2","c3"]}}}},
+  {"id":"c1","component":{"HotelCard":{
+    "name":{"path":"/hotels/0/name"},
+    "price":{"path":"/hotels/0/price"},
+    "imageUrl":{"path":"/hotels/0/imageUrl"},
+    "rating":{"path":"/hotels/0/rating"},
+    "neighborhood":{"path":"/hotels/0/neighborhood"},
+    "nights":{"path":"/query/nights"},
+    "onBook":{"action":"bookHotel",
+      "params":{"hotelId":{"path":"/hotels/0/id"}}}
+  }}},
+  {"id":"c2","component":{"HotelCard":{...}}},
+  {"id":"c3","component":{"HotelCard":{...}}}
+]}}
+
+// Line 2: Data model (state)
+{"dataModelUpdate":{"surfaceId":"main","contents":[
+  {"key":"query","valueMap":[
+    {"key":"nights","valueString":"3"}]},
+  {"key":"hotels","valueList":[
+    {"valueMap":[
+      {"key":"id","valueString":"hotel-1"},
+      {"key":"name","valueString":"The Marker"},
+      {"key":"neighborhood","valueString":"Union Square"},
+      {"key":"price","valueString":"289"},
+      {"key":"rating","valueString":"4.6"},
+      {"key":"imageUrl","valueString":"https://..."}
+    ]},
+    ...
+  ]}
+]}}
+
+// Line 3: Render signal
+{"beginRendering":{"surfaceId":"main","root":"grid"}}
+
+// Action from user click:
+{"action":"bookHotel","params":{"hotelId":"hotel-1"}}`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Register renderers",
+        detail: "Map A2UI component names to your React renderers with data binding resolvers",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "agent"],
+        flow: { from: "user", to: "agent" },
+      },
+      {
+        label: "Agent generates A2UI JSONL",
+        detail: "surfaceUpdate (tree) + dataModelUpdate (state) + beginRendering (signal)",
+        activeNodes: ["agent", "stream"],
+        flow: { from: "agent", to: "stream" },
+      },
+      {
+        label: "Renderer resolves bindings",
+        detail: "JSON Pointer paths like /hotels/0/name are resolved against the data model",
+        activeNodes: ["stream", "renderer", "registry"],
+        flow: { from: "stream", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — A2UI just provided the props",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+      {
+        label: "User clicks Book Now",
+        detail: "Action sent back to agent as structured JSON — no code execution",
+        activeNodes: ["ui", "agent"],
+        flow: { from: "ui", to: "agent" },
+      },
+    ],
   },
   openui: {
     name: "OpenUI Lang",
@@ -214,7 +463,122 @@ c2 = HotelCard(
         "Thesys C1 hosted API is a separate product — open-source vs hosted lines can blur",
         "Newer project, smaller community (@openuidev packages)",
       ]
-    }
+    },
+    componentDefinition: `── Your design system components ──
+// Same components — your code, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with OpenUI Lang ──
+import { defineComponent, createLibrary } from "@openuidev/react-lang"
+
+const HotelCardDef = defineComponent({
+  name: "HotelCard",
+  description: "Displays a hotel with image, price, rating, and booking action",
+  props: z.object({
+    name: z.string(),
+    neighborhood: z.string(),
+    imageUrl: z.string(),
+    price: z.number(),
+    rating: z.number(),
+    nights: z.number(),
+    ctaLabel: z.string().default("Book Now"),
+  }),
+  component: ({ props }) => <YourHotelCard {...props} onBook={() => handleBook(props)} />,
+})
+
+const HotelGridDef = defineComponent({
+  name: "HotelGrid",
+  description: "Grid container for hotel cards",
+  props: z.object({}),
+  component: ({ children }) => <YourHotelGrid>{children}</YourHotelGrid>,
+})
+
+const library = createLibrary({
+  root: "HotelGrid",
+  components: [HotelGridDef, HotelCardDef],
+})
+// library.prompt() → auto-generated system prompt for the LLM`,
+    wireFormat: `── OpenUI Lang Wire Format (DSL stream) ──
+
+// Compact line-oriented syntax — NOT JSON
+root = HotelGrid([c1, c2, c3])
+c1 = HotelCard(
+  "The Marker",
+  "Union Square",
+  "https://images.unsplash.com/...",
+  289,
+  4.6,
+  3,
+  "Book Now"
+)
+c2 = HotelCard(
+  "Hotel Kabuki",
+  "Japantown",
+  "https://images.unsplash.com/...",
+  215,
+  4.4,
+  3,
+  "Book Now"
+)
+c3 = HotelCard(
+  "The Battery",
+  "Financial District",
+  "https://images.unsplash.com/...",
+  342,
+  4.8,
+  3,
+  "Book Now"
+)
+
+// Zod key order = positional arg order
+// ~67% fewer tokens than the equivalent JSON
+// Actions handled via component event props`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Define + create library",
+        detail: "defineComponent wraps each component with Zod schemas; createLibrary assembles them",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "Auto-generate system prompt",
+        detail: "library.prompt() produces the LLM system prompt from your component definitions",
+        activeNodes: ["registry", "llm"],
+        flow: { from: "registry", to: "llm" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "llm"],
+        flow: { from: "user", to: "llm" },
+      },
+      {
+        label: "LLM responds in OpenUI Lang",
+        detail: "Compact DSL: root = HotelGrid([c1, c2]) — ~67% fewer tokens than JSON",
+        activeNodes: ["llm", "parser"],
+        flow: { from: "llm", to: "parser" },
+      },
+      {
+        label: "Streaming parser validates",
+        detail: "Line-by-line parsing against Zod schemas, progressive rendering",
+        activeNodes: ["parser", "renderer"],
+        flow: { from: "parser", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — OpenUI Lang just described the structure",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+    ],
   },
   jsonrender: {
     name: "json-render",
@@ -304,7 +668,129 @@ const catalog = defineCatalog(schema, {
         "Relatively new project, API still evolving",
         "Named slots model has a learning curve",
       ]
-    }
+    },
+    componentDefinition: `── Your design system components ──
+// Same components — your code, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, children }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with json-render ──
+import { defineCatalog } from "@anthropic-ai/json-render"
+
+const catalog = defineCatalog(schema, {
+  components: {
+    HotelCard: {
+      description: "Displays a hotel with image, price, and rating",
+      props: z.object({
+        name: z.string(),
+        neighborhood: z.string(),
+        imageUrl: z.string(),
+        price: z.number(),
+        rating: z.number(),
+        nights: z.number(),
+      }),
+      slots: ["default"],  // for nested children like buttons
+      render: (props, children) => <YourHotelCard {...props}>{children}</YourHotelCard>,
+    },
+    HotelGrid: {
+      description: "Grid of hotel cards",
+      props: z.object({}),
+      slots: ["default"],
+      render: (_, children) => <YourHotelGrid>{children}</YourHotelGrid>,
+    },
+  },
+  actions: {
+    bookHotel: {
+      params: z.object({ hotelId: z.string() }),
+      description: "Book the selected hotel",
+      handler: ({ hotelId }) => handleBooking(hotelId),
+    },
+  },
+})`,
+    wireFormat: `── json-render Wire Format (JSON stream) ──
+
+{
+  "root": "grid-1",
+  "elements": {
+    "grid-1": {
+      "type": "HotelGrid",
+      "children": ["card-1", "card-2", "card-3"]
+    },
+    "card-1": {
+      "type": "HotelCard",
+      "props": {
+        "name": "The Marker",
+        "neighborhood": "Union Square",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 289,
+        "rating": 4.6,
+        "nights": 3
+      },
+      "children": ["book-1"]
+    },
+    "book-1": {
+      "type": "Button",
+      "props": { "label": "Book Now" },
+      "on": { "press": {
+        "action": "bookHotel",
+        "params": { "hotelId": "hotel-1" }
+      }}
+    },
+    "card-2": { "type": "HotelCard", "props": {...}, "children": ["book-2"] },
+    "card-3": { "type": "HotelCard", "props": {...}, "children": ["book-3"] },
+    "book-2": { "type": "Button", "props": {...}, "on": {...} },
+    "book-3": { "type": "Button", "props": {...}, "on": {...} }
+  }
+}
+
+// Flat element tree — no nesting
+// Actions are declarative JSON, not callbacks
+// Can be exported to standalone React via @json-render/codegen`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Define catalog + actions",
+        detail: "defineCatalog registers components with Zod schemas and action handlers like bookHotel",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "Schema becomes system prompt",
+        detail: "Catalog schema sent to the LLM as a system prompt constraining output",
+        activeNodes: ["registry", "llm"],
+        flow: { from: "registry", to: "llm" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "llm"],
+        flow: { from: "user", to: "llm" },
+      },
+      {
+        label: "LLM generates constrained JSON",
+        detail: "Flat element tree with typed props, children refs, and declarative action bindings",
+        activeNodes: ["llm", "stream"],
+        flow: { from: "llm", to: "stream" },
+      },
+      {
+        label: "Renderer maps elements",
+        detail: "Each element type maps to your registered React component",
+        activeNodes: ["stream", "renderer"],
+        flow: { from: "stream", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — json-render just structured the data",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+    ],
   },
   tambo: {
     name: "Tambo",
@@ -381,7 +867,138 @@ function App() {
         "Self-hosting the backend (not just the SDK) is unclear",
         "Less control over the agent layer vs building your own",
       ]
+    },
+    componentDefinition: `── Your design system components ──
+// Same components — your code, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with Tambo ──
+const components = [
+  {
+    name: "HotelCard",
+    description: "Displays a hotel with booking action",
+    component: YourHotelCard,
+    propsSchema: z.object({
+      name: z.string(),
+      neighborhood: z.string(),
+      imageUrl: z.string(),
+      price: z.number(),
+      rating: z.number(),
+      nights: z.number(),
+    }),
+    toolSchema: z.object({
+      book: z.object({ hotelId: z.string() }),
+    }),
+  },
+  {
+    name: "HotelGrid",
+    description: "Grid container for hotel cards",
+    component: YourHotelGrid,
+    propsSchema: z.object({}),
+  },
+]
+
+function App() {
+  return (
+    <TamboProvider components={components}>
+      <YourApp />
+    </TamboProvider>
+  )
+}
+// That's it — Tambo handles the rest`,
+    wireFormat: `── Tambo Wire Format (streamed React props) ──
+
+// Tambo streams component selection + props as JSON
+// The agent runtime handles this — you don't see raw wire format
+
+{
+  "component": "HotelGrid",
+  "children": [
+    {
+      "component": "HotelCard",
+      "props": {
+        "name": "The Marker",
+        "neighborhood": "Union Square",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 289,
+        "rating": 4.6,
+        "nights": 3
+      }
+    },
+    {
+      "component": "HotelCard",
+      "props": {
+        "name": "Hotel Kabuki",
+        "neighborhood": "Japantown",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 215,
+        "rating": 4.4,
+        "nights": 3
+      }
+    },
+    {
+      "component": "HotelCard",
+      "props": {
+        "name": "The Battery",
+        "neighborhood": "Financial District",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 342,
+        "rating": 4.8,
+        "nights": 3
+      }
     }
+  ]
+}
+
+// Props stream directly into your registered components
+// Actions flow through useTamboComponentState
+// Agent handles tool calls for bookHotel via toolSchema`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Register + wrap in provider",
+        detail: "List components with propsSchema, wrap app in TamboProvider — that's the setup",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "cloud"],
+        flow: { from: "user", to: "cloud" },
+      },
+      {
+        label: "Tambo cloud agent responds",
+        detail: "Agent selects HotelGrid + HotelCard, generates props matching your Zod schemas",
+        activeNodes: ["cloud", "stream"],
+        flow: { from: "cloud", to: "stream" },
+      },
+      {
+        label: "Props stream into components",
+        detail: "Tambo streams component selection and props directly to your registered components",
+        activeNodes: ["stream", "renderer"],
+        flow: { from: "stream", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — Tambo just matched and populated them",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+      {
+        label: "User clicks Book Now",
+        detail: "Action flows through useTamboComponentState back to the cloud agent",
+        activeNodes: ["ui", "cloud"],
+        flow: { from: "ui", to: "cloud" },
+      },
+    ],
   },
 };
 
@@ -398,46 +1015,155 @@ const DIMENSIONS = [
 
 // ---- Components ----
 
-function DataFlowDiagram({ framework }) {
+function AnimatedFlowDiagram({ framework }) {
   const fw = FRAMEWORKS[framework];
-  const steps = fw.dataFlow;
-  
+  const steps = fw.pipelineSteps;
+  const containerRef = useRef(null);
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const stepEls = container.querySelectorAll('[data-step]');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setActiveStep(Number(entry.target.dataset.step));
+          }
+        });
+      },
+      { root: null, rootMargin: '-40% 0px -40% 0px', threshold: 0 }
+    );
+
+    stepEls.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, [framework]);
+
+  const allNodes = [...new Set(steps.flatMap(s => s.activeNodes))];
+
   return (
-    <div style={{ padding: '1.5rem 0' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+    <div ref={containerRef}>
+      {/* Sticky diagram area */}
+      <div style={{
+        position: 'sticky',
+        top: 80,
+        zIndex: 10,
+        background: COLORS.cream,
+        padding: '1rem 0',
+        borderBottom: `1px solid ${COLORS.fog}`,
+        marginBottom: '1rem',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+        }}>
+          {allNodes.map(nodeId => {
+            const node = FLOW_NODES[nodeId];
+            const isActive = steps[activeStep]?.activeNodes.includes(nodeId);
+            const flow = steps[activeStep]?.flow;
+            const isSource = flow?.from === nodeId;
+            const isTarget = flow?.to === nodeId;
+
+            return (
+              <div key={nodeId} style={{
+                padding: '0.4rem 0.75rem',
+                borderRadius: 8,
+                border: `2px solid ${isActive ? fw.color : COLORS.fog}`,
+                background: isActive ? `${fw.color}12` : '#fff',
+                opacity: isActive ? 1 : 0.35,
+                transition: 'all 0.4s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                position: 'relative',
+              }}>
+                {(isSource || isTarget) && (
+                  <div style={{
+                    position: 'absolute',
+                    top: -2, left: -2, right: -2, bottom: -2,
+                    borderRadius: 10,
+                    border: `2px solid ${fw.color}`,
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }} />
+                )}
+                <span style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  color: isActive ? fw.color : COLORS.dusk,
+                }}>
+                  {node.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {steps[activeStep]?.flow && (
+          <div style={{
+            textAlign: 'center',
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '0.7rem',
+            color: fw.color,
+            marginTop: '0.5rem',
+            fontWeight: 600,
+          }}>
+            {FLOW_NODES[steps[activeStep].flow.from]?.label} → {FLOW_NODES[steps[activeStep].flow.to]?.label}
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable step descriptions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {steps.map((step, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: fw.color, color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: '0.75rem', fontWeight: 600,
-              flexShrink: 0,
-            }}>
-              {i + 1}
-            </div>
-            <div style={{
-              flex: 1, padding: '0.5rem 0.75rem',
-              background: i % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
-              borderRadius: 6,
-              fontFamily: "'Source Serif 4', Georgia, serif",
-              fontSize: '0.9rem',
-              color: COLORS.warmBlack,
-              lineHeight: 1.4,
-            }}>
-              {step.label}
-            </div>
-            <div style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: '0.65rem',
-              color: COLORS.dusk,
-              opacity: 0.7,
-              flexShrink: 0,
-              width: 80,
-              textAlign: 'right',
-            }}>
-              {step.from} → {step.to}
+          <div
+            key={i}
+            data-step={i}
+            style={{
+              padding: '1.25rem',
+              borderRadius: 10,
+              border: `1px solid ${i === activeStep ? fw.color : COLORS.fog}`,
+              background: i === activeStep ? `${fw.color}08` : '#fff',
+              transition: 'all 0.3s ease',
+              minHeight: 80,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: i === activeStep ? fw.color : COLORS.fog,
+                color: i === activeStep ? '#fff' : COLORS.dusk,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.75rem', fontWeight: 600,
+                flexShrink: 0,
+                transition: 'all 0.3s ease',
+              }}>
+                {i + 1}
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: "'Fraunces', Georgia, serif",
+                  fontWeight: 600, fontSize: '0.95rem',
+                  color: COLORS.warmBlack,
+                  letterSpacing: '-0.02em',
+                }}>
+                  {step.label}
+                </div>
+                <div style={{
+                  fontFamily: "'Source Serif 4', Georgia, serif",
+                  fontSize: '0.85rem',
+                  color: COLORS.dusk,
+                  lineHeight: 1.5,
+                  marginTop: '0.2rem',
+                }}>
+                  {step.detail}
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -940,6 +1666,7 @@ function SectionHeader({ children, sub }) {
 function ViewToggle({ view, setView }) {
   const views = [
     { id: 'overview', label: 'Overview' },
+    { id: 'pipeline', label: 'Pipeline' },
     { id: 'deep-dive', label: 'Deep Dive' },
     { id: 'comparison', label: 'Side by Side' },
   ];
@@ -1054,6 +1781,69 @@ export default function GenUIExplorer() {
           </div>
         </div>
 
+        {/* ---- PIPELINE VIEW ---- */}
+        {view === 'pipeline' && (
+          <div>
+            <SectionHeader sub={`"Find me hotels in San Francisco for three nights" — one prompt, traced through ${fw.name}'s pipeline from component registration to rendered UI.`}>
+              Anatomy of a Response
+            </SectionHeader>
+
+            {/* Framework tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+              {fwKeys.map(k => (
+                <FrameworkTab
+                  key={k} id={k}
+                  active={activeFramework === k}
+                  onClick={() => setActiveFramework(k)}
+                />
+              ))}
+            </div>
+
+            {/* Stage 1: Component Definition */}
+            <SectionHeader sub="You already have these components. Here's how you register them.">
+              1. Define Your Components
+            </SectionHeader>
+            <CodeBlock code={fw.componentDefinition} framework={activeFramework} />
+
+            {/* Stage 2: Data Flow */}
+            <SectionHeader sub="What happens when the user asks their question? Scroll to follow the data.">
+              2. The Pipeline
+            </SectionHeader>
+            <AnimatedFlowDiagram framework={activeFramework} />
+
+            {/* Stage 3: Wire Format */}
+            <SectionHeader sub="This is what the LLM actually outputs — the raw response before your renderer touches it.">
+              3. What the LLM Outputs
+            </SectionHeader>
+            <CodeBlock code={fw.wireFormat} framework={activeFramework} />
+
+            {/* Stage 4: Rendered Result */}
+            <SectionHeader sub="Same components, same data, same result — regardless of which framework got you here.">
+              4. What the User Sees
+            </SectionHeader>
+            <div style={{
+              padding: '1.5rem',
+              border: `1px solid ${COLORS.fog}`,
+              borderRadius: 10,
+              background: '#fff',
+            }}>
+              <div style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.7rem',
+                color: COLORS.dusk,
+                marginBottom: '1rem',
+                padding: '0.4rem 0.75rem',
+                background: `${fw.color}0D`,
+                borderRadius: 6,
+                display: 'inline-block',
+              }}>
+                Rendered via {fw.name}
+              </div>
+              <HotelGrid hotels={SAMPLE_HOTELS} />
+            </div>
+          </div>
+        )}
+
         {/* ---- OVERVIEW VIEW ---- */}
         {view === 'overview' && (
           <div>
@@ -1123,7 +1913,7 @@ export default function GenUIExplorer() {
               })}
             </div>
 
-            <SectionHeader sub="The same question — 'Find me a hotel in Paris' — handled by each framework. What does the developer write? How does data flow?">
+            <SectionHeader sub="The same question — 'Find me hotels in San Francisco for three nights' — handled by each framework. See the Pipeline view for the full walkthrough.">
               One Query, Four Architectures
             </SectionHeader>
 
@@ -1163,7 +1953,7 @@ export default function GenUIExplorer() {
                 }}>
                   Data Flow: {fw.name}
                 </div>
-                <DataFlowDiagram framework={activeFramework} />
+                <AnimatedFlowDiagram framework={activeFramework} />
               </div>
               <div style={{
                 borderTop: `1px solid ${COLORS.fog}`,
@@ -1238,7 +2028,7 @@ export default function GenUIExplorer() {
               border: `1px solid ${COLORS.fog}`, borderRadius: 10,
               padding: '1.25rem', marginBottom: '1.5rem',
             }}>
-              <DataFlowDiagram framework={activeFramework} />
+              <AnimatedFlowDiagram framework={activeFramework} />
             </div>
 
             <SectionHeader>What You Write</SectionHeader>
@@ -1372,6 +2162,10 @@ export default function GenUIExplorer() {
         table::-webkit-scrollbar { height: 6px; }
         table::-webkit-scrollbar-track { background: ${COLORS.fog}; }
         table::-webkit-scrollbar-thumb { background: ${COLORS.dusk}50; border-radius: 3px; }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
       `}</style>
     </div>
   );
