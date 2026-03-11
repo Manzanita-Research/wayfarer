@@ -23,16 +23,16 @@ const FRAMEWORKS = {
     kind: "Open Protocol / Spec",
     url: "https://a2ui.org",
     uiFormat: "JSONL (streaming adjacency list)",
-    renderers: "Angular, Flutter, Lit, React, Markdown",
+    renderers: "Angular, Flutter, Lit/Web Components (stable); React (in progress)",
     llmGeneration: "Yes — designed for streaming LLM output",
     componentModel: "Declarative blueprints from a catalog",
-    stateBinding: "Data model updates via dataModelUpdate messages",
+    stateBinding: "Data binding via path references (JSON Pointer) to a shared data model",
     streaming: "Native — JSONL line-by-line",
     security: "Declarative data, no code execution",
-    crossPlatform: "Web, mobile, desktop, native",
+    crossPlatform: "Angular, Flutter, Lit/Web Components (stable); React, SwiftUI, Vue (planned)",
     hosting: "Self-hosted (open spec)",
     trustModel: "Designed for untrusted agents across trust boundaries",
-    summary: "A2UI is the most protocol-oriented approach. It's a specification, not a library — think of it like HTML for agent UIs. Agents send declarative component descriptions as streaming JSONL, and any renderer can interpret them. The key insight is trust boundaries: A2UI is designed for scenarios where the agent generating UI is not controlled by the app developer.",
+    summary: "A2UI is the most protocol-oriented approach. It's a specification, not a library — think of it like HTML for agent UIs. Agents send declarative component descriptions as streaming JSONL, and any renderer can interpret them. The key insight is trust boundaries: A2UI is designed for scenarios where the agent generating UI is not controlled by the app developer. Note: v0.8 (stable) and v0.9 (draft, Q1 2026) are significantly different — v0.9 renames message types (surfaceUpdate → updateComponents, beginRendering → createSurface), flattens the component structure, and switches to plain JSON for data models. The examples here show v0.8, the current stable spec.",
     dataFlow: [
       { label: "User sends message", from: "user", to: "agent" },
       { label: "Agent generates A2UI JSONL", from: "agent", to: "stream" },
@@ -45,101 +45,147 @@ const FRAMEWORKS = {
     devWrites: `── What the developer provides ──
 A component catalog (Card, Image, Text, etc.)
 with native renderers for their platform
-(Angular, Flutter, Lit, React…)
+(Angular, Flutter, Lit, Web Components…)
 
 ── What the agent generates (JSONL stream) ──
 
 Line 1 → surfaceUpdate (component tree):
 {
-  "root": "hotel-card",
-  "components": {
-    "hotel-card": {
-      "type": "Card",
-      "props": { "title": { "$data": "/hotels/0/name" } },
-      "children": ["hotel-image", "hotel-price"]
-    },
-    "hotel-image": {
-      "type": "Image",
-      "props": { "src": { "$data": "/hotels/0/imageUrl" } }
-    }
+  "surfaceUpdate": {
+    "surfaceId": "main",
+    "components": [
+      {
+        "id": "hotel-card",
+        "component": {
+          "Card": {
+            "child": "hotel-content"
+          }
+        }
+      },
+      {
+        "id": "hotel-content",
+        "component": {
+          "Column": {
+            "children": {
+              "explicitList": ["hotel-image", "hotel-price"]
+            }
+          }
+        }
+      },
+      {
+        "id": "hotel-image",
+        "component": {
+          "Image": {
+            "src": { "path": "/hotels/0/imageUrl" }
+          }
+        }
+      },
+      {
+        "id": "hotel-price",
+        "component": {
+          "Text": {
+            "text": { "path": "/hotels/0/price" }
+          }
+        }
+      }
+    ]
   }
 }
 
 Line 2 → dataModelUpdate (state):
 {
-  "hotels": [{
-    "name": "Hotel & Spa",
-    "imageUrl": "/img/hotel.jpg",
-    "price": "$240/night"
-  }]
+  "dataModelUpdate": {
+    "surfaceId": "main",
+    "contents": [
+      {
+        "key": "hotels",
+        "valueList": [
+          {
+            "valueMap": [
+              { "key": "name", "valueString": "Hotel & Spa" },
+              { "key": "imageUrl", "valueString": "/img/hotel.jpg" },
+              { "key": "price", "valueString": "$240/night" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }
 
-Line 3 → beginRendering
+Line 3 → beginRendering:
+{ "beginRendering": { "surfaceId": "main", "root": "hotel-card" } }
 // Client renders native components with bound data`,
     tradeoffs: {
       strengths: [
-        "Most portable — works across any frontend framework",
+        "Most portable — Angular, Flutter, Lit stable; React, SwiftUI, Vue planned",
         "Built for multi-agent / untrusted agent scenarios",
-        "Google-backed with active spec development",
-        "Clean separation of structure and data via data binding",
+        "Google-backed with active spec development (Apache 2.0)",
+        "Clean separation of structure and data via JSON Pointer binding",
       ],
       considerations: [
         "More ceremony to set up than a React-specific SDK",
-        "Spec is still evolving (v0.8 stable, v0.9 draft)",
+        "Spec is still evolving (v0.8 stable, v0.9 draft); React renderer not yet shipped",
         "No built-in component library — you bring your own renderers",
-        "Requires understanding the adjacency list model",
+        "Requires understanding the adjacency list model and four message types",
       ]
     }
   },
   openui: {
     name: "OpenUI Lang",
     by: "Thesys",
-    tagline: "Token-efficient streaming language for generative UI",
+    tagline: "Token-efficient DSL for streaming generative UI",
     color: '#E86C3A',
-    kind: "Compact Language + React Runtime",
+    kind: "Custom DSL + React Runtime (+ C1 hosted API)",
     url: "https://openui.com",
-    uiFormat: "OpenUI Lang (compact line-oriented function-call syntax)",
-    renderers: "React (primary), React Native (planned)",
-    llmGeneration: "Yes — custom language designed to minimize tokens",
-    componentModel: "defineComponent + createLibrary with Zod schemas",
-    stateBinding: "Props with Zod validation, library-driven",
-    streaming: "Native — streaming-first language design",
+    uiFormat: "OpenUI Lang — a line-oriented DSL streamed directly by the LLM",
+    renderers: "React (@openuidev/react-lang)",
+    llmGeneration: "Yes — custom DSL designed to minimize tokens",
+    componentModel: "defineComponent + createLibrary with Zod schemas (@openuidev/react-lang)",
+    stateBinding: "Props with Zod validation; key order determines positional args",
+    streaming: "Native — line-oriented format designed for streaming parse",
     security: "Catalog-constrained, no arbitrary code execution",
-    crossPlatform: "React (web), React Native planned",
-    hosting: "Self-hosted (open source) or Thesys C1 API",
+    crossPlatform: "React (web)",
+    hosting: "Self-hosted (open source) or Thesys C1 hosted API (OpenAI-compatible)",
     trustModel: "Component library defines the guardrails",
-    summary: "OpenUI's key innovation is a custom language that's not JSON — it's specifically designed to be token-efficient for LLM generation. They claim up to 67% fewer tokens than json-render. The developer defines a component library with Zod schemas, OpenUI generates the system prompt automatically, and the LLM responds in OpenUI Lang which the renderer parses and renders progressively.",
+    summary: "OpenUI Lang is a custom DSL — not JSON, not JSX — designed for LLMs to generate UI descriptions in fewer tokens. The developer defines components with defineComponent and assembles them into a library with createLibrary (both from @openuidev/react-lang). The library auto-generates an LLM system prompt. The LLM responds in OpenUI Lang's compact assignment syntax, which a streaming parser converts to React components. Benchmarks show up to 67% fewer tokens than JSON alternatives. Thesys also offers C1, a hosted API (OpenAI-compatible) that can generate UI using these components.",
     dataFlow: [
-      { label: "Developer defines component library", from: "dev", to: "library" },
-      { label: "OpenUI generates system prompt from library", from: "library", to: "prompt" },
+      { label: "Developer defines components (defineComponent + Zod schemas)", from: "dev", to: "library" },
+      { label: "createLibrary assembles components; library.prompt() generates system prompt", from: "library", to: "prompt" },
       { label: "User query + system prompt → LLM", from: "prompt", to: "llm" },
-      { label: "LLM responds in OpenUI Lang tokens", from: "llm", to: "stream" },
-      { label: "Parser processes compact syntax", from: "stream", to: "renderer" },
-      { label: "Renderer maps to React components", from: "renderer", to: "ui" },
+      { label: "LLM responds in OpenUI Lang (compact DSL tokens)", from: "llm", to: "stream" },
+      { label: "Streaming parser validates against schemas line-by-line", from: "stream", to: "renderer" },
+      { label: "Renderer maps parsed elements to React components", from: "renderer", to: "ui" },
     ],
     devWrites: `── What the developer writes ──
+import { defineComponent, createLibrary } from "@openuidev/react-lang"
 
 // 1. Define components with Zod schemas
 const HotelCard = defineComponent({
   name: "HotelCard",
+  description: "Displays a hotel with booking option",
   props: z.object({
     title: z.string(),
     description: z.string().optional(),
-    imageUrl: z.string().url(),
+    imageUrl: z.string(),
     ctaLabel: z.string(),
   }),
-  component: ({ props }) => <HotelCard {...props} />,
+  // Zod key order = positional arg order in the DSL
+  component: ({ props }) => <HotelCardUI {...props} />,
 })
 
-// 2. Create a library (auto-generates system prompt)
+// 2. Create library (auto-generates LLM system prompt)
 const library = createLibrary({
   root: "Carousel",
   components: [Carousel, HotelCard],
 })
 
+// 3. Get the system prompt for the LLM
+const systemPrompt = library.prompt()
+
 ── What the LLM responds with (OpenUI Lang) ──
 
-// Compact, line-oriented, NOT JSON:
+// Compact, line-oriented DSL — NOT JSON:
 root = Carousel([c1, c2, c3])
 c1 = HotelCard(
   "Hotel Plaza Athenee",
@@ -157,16 +203,16 @@ c2 = HotelCard(
 // ~67% fewer tokens than the equivalent JSON`,
     tradeoffs: {
       strengths: [
-        "Most token-efficient — up to 67% fewer tokens than JSON approaches",
-        "Auto-generates system prompts from your component library",
-        "Zod schema validation ensures type safety",
-        "Streaming-first — renders progressively as tokens arrive",
+        "Most token-efficient — up to 67% fewer tokens than JSON (benchmarked)",
+        "Auto-generates LLM system prompts from your component library",
+        "Zod schema validation with positional arg mapping",
+        "Streaming-first — line-oriented parser renders progressively",
       ],
       considerations: [
-        "React-only currently (React Native planned)",
-        "Custom syntax means tooling ecosystem is smaller",
-        "Thesys (company) also has C1 hosted API — open-source vs hosted lines blur",
-        "Newer project, smaller community",
+        "React-only currently",
+        "Custom DSL means smaller tooling ecosystem",
+        "Thesys C1 hosted API is a separate product — open-source vs hosted lines can blur",
+        "Newer project, smaller community (@openuidev packages)",
       ]
     }
   },
@@ -178,13 +224,13 @@ c2 = HotelCard(
     kind: "JSON Schema + React Runtime",
     url: "https://json-render.dev",
     uiFormat: "JSON (flat element tree with catalog constraints)",
-    renderers: "React, React Native",
+    renderers: "React, React Native, Vue",
     llmGeneration: "Yes — constrained JSON output",
-    componentModel: "defineCatalog with Zod schemas, hasChildren slots",
-    stateBinding: "$state, $item, $index, $bindState for two-way binding",
+    componentModel: "defineCatalog with Zod schemas, named slots for children",
+    stateBinding: "$state, $item, $index, $bindState, $bindItem, $template",
     streaming: "Yes — progressive JSON streaming",
     security: "Catalog-constrained, no arbitrary code execution",
-    crossPlatform: "React (web), React Native",
+    crossPlatform: "React, React Native, Vue",
     hosting: "Self-hosted (open source)",
     trustModel: "AI can only use components defined in the catalog",
     summary: "json-render is Vercel's take — pure JSON, heavily catalog-constrained, with a rich built-in component library (39 components, 6 actions). The standout feature is code export: you can eject any generated UI into standalone React code with no runtime dependency. It uses a flat element tree (not nested JSON) which is friendlier for streaming parsers.",
@@ -207,12 +253,14 @@ const catalog = defineCatalog(schema, {
         imageUrl: z.string(),
         price: z.string(),
       }),
-      hasChildren: true,
+      slots: ["default"],
+      description: "Displays a hotel with image and price",
     },
   },
   actions: {
     bookHotel: {
-      params: z.object({ hotelId: z.string() })
+      params: z.object({ hotelId: z.string() }),
+      description: "Book a hotel room",
     },
   },
 });
@@ -245,16 +293,16 @@ const catalog = defineCatalog(schema, {
 // Can be exported as standalone React code`,
     tradeoffs: {
       strengths: [
-        "Rich built-in component library (39 components out of the box)",
-        "Code export — eject to standalone React, no runtime needed",
-        "Mature data binding with $state, $bindState, $item",
-        "Backed by Vercel — strong ecosystem alignment",
+        "Rich built-in schema with many component types",
+        "Code export — eject to standalone React via @json-render/codegen",
+        "Mature data binding: $state, $bindState, $item, $bindItem, $template",
+        "Multi-framework: React, React Native, and Vue renderers",
       ],
       considerations: [
-        "More tokens than OpenUI Lang (JSON is verbose)",
-        "React/React Native only",
+        "JSON format is more verbose than compact alternatives",
         "Flat element tree can feel unfamiliar vs nested JSX",
-        "11k GitHub stars but relatively new",
+        "Relatively new project, API still evolving",
+        "Named slots model has a learning curve",
       ]
     }
   },
@@ -269,14 +317,14 @@ const catalog = defineCatalog(schema, {
     renderers: "React",
     llmGeneration: "Yes — agent selects and populates registered components",
     componentModel: "Register existing React components with Zod schemas",
-    stateBinding: "Built-in component state management + useTamboState",
+    stateBinding: "Built-in component state management + useTamboComponentState",
     streaming: "Yes — streaming component rendering",
     security: "Agent only renders registered components",
     crossPlatform: "React (web)",
     hosting: "Cloud hosted (free tier) or self-hosted open source",
     trustModel: "Agent inherits user's auth permissions",
     mcpSupport: "Built-in MCP support",
-    summary: "Tambo is the most batteries-included option. It's not just a UI spec — it's a full agent platform. You wrap your React app in a TamboProvider, register your existing components, and Tambo handles the agent runtime, streaming, state management, conversation storage, auth, and MCP integration. It has a hosted cloud service with pricing tiers, but the core is open source and self-hostable.",
+    summary: "Tambo wraps your React app in a TamboProvider and lets you register existing components with Zod schemas. It handles the agent runtime, streaming, state management (via useTamboComponentState), conversation storage, auth, and MCP integration. The React SDK is open source. It has a hosted cloud backend, though the degree to which the backend is self-hostable is unclear.",
     dataFlow: [
       { label: "Developer wraps app in TamboProvider", from: "dev", to: "provider" },
       { label: "Register existing React components", from: "provider", to: "registry" },
@@ -306,12 +354,8 @@ const components = [
 // 2. Wrap your app — that's it
 function App() {
   return (
-    <TamboProvider
-      apiKey="your-key"
-      components={components}
-    >
+    <TamboProvider components={components}>
       <YourApp />
-      <TamboChat />
     </TamboProvider>
   );
 }
@@ -326,15 +370,15 @@ function App() {
 // Auth, MCP, conversation storage: all built in`,
     tradeoffs: {
       strengths: [
-        "Fastest time-to-working-demo — minutes, not days",
+        "Quick to get running — register components, wrap in provider, go",
         "Uses your existing React components as-is",
-        "Built-in auth, conversation storage, MCP, analytics",
-        "Open source core + managed cloud option",
+        "Built-in auth, conversation storage, MCP support",
+        "Open source React SDK (@tambo-ai/react)",
       ],
       considerations: [
         "React-only (no cross-platform story)",
-        "Cloud dependency for managed features (or self-host)",
-        "Hosted service has pricing tiers ($25/mo for growth)",
+        "Cloud dependency for the agent backend",
+        "Self-hosting the backend (not just the SDK) is unclear",
         "Less control over the agent layer vs building your own",
       ]
     }
@@ -1265,7 +1309,7 @@ export default function GenUIExplorer() {
                     </div>
                     <div style={{ fontSize: '0.85rem', color: COLORS.warmBlack, lineHeight: 1.6 }}>
                       {k === 'a2ui' && "You need cross-platform rendering (not just React), you're building for multi-agent systems with untrusted agents, or you want a framework-agnostic protocol that works with Angular, Flutter, and native apps."}
-                      {k === 'openui' && "Token efficiency matters (high-volume, cost-sensitive), you want automatic prompt generation from your component library, and you're building in React with a streaming-first architecture."}
+                      {k === 'openui' && "Token efficiency matters (high-volume, cost-sensitive), you want automatic system prompt generation from your component library, and you're building in React with a streaming-first architecture. C1 hosted API available if you want managed infrastructure."}
                       {k === 'jsonrender' && "You want a rich built-in component library, the ability to export generated UI as standalone React code, or you're in the Vercel/Next.js ecosystem and want strong data binding patterns."}
                       {k === 'tambo' && "You want the fastest path from zero to working agent UI, you need auth + conversation storage + MCP out of the box, or you prefer a managed platform with self-host escape hatch."}
                     </div>
