@@ -1714,6 +1714,7 @@ function SectionHeader({ children, sub }) {
 function ViewToggle({ view, setView }) {
   const views = [
     { id: 'overview', label: 'Overview' },
+    { id: 'pipeline', label: 'Pipeline' },
     { id: 'deep-dive', label: 'Deep Dive' },
     { id: 'comparison', label: 'Side by Side' },
   ];
@@ -1827,6 +1828,69 @@ export default function GenUIExplorer() {
             Spring 2026
           </div>
         </div>
+
+        {/* ---- PIPELINE VIEW ---- */}
+        {view === 'pipeline' && (
+          <div>
+            <SectionHeader sub={`"Find me hotels in San Francisco for three nights" — one prompt, traced through ${fw.name}'s pipeline from component registration to rendered UI.`}>
+              Anatomy of a Response
+            </SectionHeader>
+
+            {/* Framework tabs */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+              {fwKeys.map(k => (
+                <FrameworkTab
+                  key={k} id={k}
+                  active={activeFramework === k}
+                  onClick={() => setActiveFramework(k)}
+                />
+              ))}
+            </div>
+
+            {/* Stage 1: Component Definition */}
+            <SectionHeader sub="You already have these components. Here's how you register them.">
+              1. Define Your Components
+            </SectionHeader>
+            <CodeBlock code={fw.componentDefinition} framework={activeFramework} />
+
+            {/* Stage 2: Data Flow */}
+            <SectionHeader sub="What happens when the user asks their question? Scroll to follow the data.">
+              2. The Pipeline
+            </SectionHeader>
+            <AnimatedFlowDiagram framework={activeFramework} />
+
+            {/* Stage 3: Wire Format */}
+            <SectionHeader sub="This is what the LLM actually outputs — the raw response before your renderer touches it.">
+              3. What the LLM Outputs
+            </SectionHeader>
+            <CodeBlock code={fw.wireFormat} framework={activeFramework} />
+
+            {/* Stage 4: Rendered Result */}
+            <SectionHeader sub="Same components, same data, same result — regardless of which framework got you here.">
+              4. What the User Sees
+            </SectionHeader>
+            <div style={{
+              padding: '1.5rem',
+              border: `1px solid ${COLORS.fog}`,
+              borderRadius: 10,
+              background: '#fff',
+            }}>
+              <div style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.7rem',
+                color: COLORS.dusk,
+                marginBottom: '1rem',
+                padding: '0.4rem 0.75rem',
+                background: `${fw.color}0D`,
+                borderRadius: 6,
+                display: 'inline-block',
+              }}>
+                Rendered via {fw.name}
+              </div>
+              <HotelGrid hotels={SAMPLE_HOTELS} />
+            </div>
+          </div>
+        )}
 
         {/* ---- OVERVIEW VIEW ---- */}
         {view === 'overview' && (
