@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const COLORS = {
   cream: '#FAF9F6',
@@ -42,6 +42,19 @@ const SAMPLE_HOTELS = [
     nights: 3,
   },
 ];
+
+const FLOW_NODES = {
+  user: { label: 'User' },
+  designSystem: { label: 'Your Components' },
+  registry: { label: 'Component Registry' },
+  llm: { label: 'LLM' },
+  stream: { label: 'Stream' },
+  parser: { label: 'Parser' },
+  renderer: { label: 'Renderer' },
+  ui: { label: 'Rendered UI' },
+  agent: { label: 'Agent' },
+  cloud: { label: 'Cloud Agent' },
+};
 
 function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
   return (
@@ -322,6 +335,50 @@ const rendererCatalog = {
 
 // Action from user click:
 {"action":"bookHotel","params":{"hotelId":"hotel-1"}}`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Register renderers",
+        detail: "Map A2UI component names to your React renderers with data binding resolvers",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "agent"],
+        flow: { from: "user", to: "agent" },
+      },
+      {
+        label: "Agent generates A2UI JSONL",
+        detail: "surfaceUpdate (tree) + dataModelUpdate (state) + beginRendering (signal)",
+        activeNodes: ["agent", "stream"],
+        flow: { from: "agent", to: "stream" },
+      },
+      {
+        label: "Renderer resolves bindings",
+        detail: "JSON Pointer paths like /hotels/0/name are resolved against the data model",
+        activeNodes: ["stream", "renderer", "registry"],
+        flow: { from: "stream", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — A2UI just provided the props",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+      {
+        label: "User clicks Book Now",
+        detail: "Action sent back to agent as structured JSON — no code execution",
+        activeNodes: ["ui", "agent"],
+        flow: { from: "ui", to: "agent" },
+      },
+    ],
   },
   openui: {
     name: "OpenUI Lang",
@@ -478,6 +535,50 @@ c3 = HotelCard(
 // Zod key order = positional arg order
 // ~67% fewer tokens than the equivalent JSON
 // Actions handled via component event props`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Define + create library",
+        detail: "defineComponent wraps each component with Zod schemas; createLibrary assembles them",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "Auto-generate system prompt",
+        detail: "library.prompt() produces the LLM system prompt from your component definitions",
+        activeNodes: ["registry", "llm"],
+        flow: { from: "registry", to: "llm" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "llm"],
+        flow: { from: "user", to: "llm" },
+      },
+      {
+        label: "LLM responds in OpenUI Lang",
+        detail: "Compact DSL: root = HotelGrid([c1, c2]) — ~67% fewer tokens than JSON",
+        activeNodes: ["llm", "parser"],
+        flow: { from: "llm", to: "parser" },
+      },
+      {
+        label: "Streaming parser validates",
+        detail: "Line-by-line parsing against Zod schemas, progressive rendering",
+        activeNodes: ["parser", "renderer"],
+        flow: { from: "parser", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — OpenUI Lang just described the structure",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+    ],
   },
   jsonrender: {
     name: "json-render",
@@ -646,6 +747,50 @@ const catalog = defineCatalog(schema, {
 // Flat element tree — no nesting
 // Actions are declarative JSON, not callbacks
 // Can be exported to standalone React via @json-render/codegen`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Define catalog + actions",
+        detail: "defineCatalog registers components with Zod schemas and action handlers like bookHotel",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "Schema becomes system prompt",
+        detail: "Catalog schema sent to the LLM as a system prompt constraining output",
+        activeNodes: ["registry", "llm"],
+        flow: { from: "registry", to: "llm" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "llm"],
+        flow: { from: "user", to: "llm" },
+      },
+      {
+        label: "LLM generates constrained JSON",
+        detail: "Flat element tree with typed props, children refs, and declarative action bindings",
+        activeNodes: ["llm", "stream"],
+        flow: { from: "llm", to: "stream" },
+      },
+      {
+        label: "Renderer maps elements",
+        detail: "Each element type maps to your registered React component",
+        activeNodes: ["stream", "renderer"],
+        flow: { from: "stream", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — json-render just structured the data",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+    ],
   },
   tambo: {
     name: "Tambo",
@@ -810,6 +955,50 @@ function App() {
 // Props stream directly into your registered components
 // Actions flow through useTamboComponentState
 // Agent handles tool calls for bookHotel via toolSchema`,
+    pipelineSteps: [
+      {
+        label: "Your components exist",
+        detail: "HotelCard, HotelGrid — your design system, your styles",
+        activeNodes: ["designSystem"],
+        flow: null,
+      },
+      {
+        label: "Register + wrap in provider",
+        detail: "List components with propsSchema, wrap app in TamboProvider — that's the setup",
+        activeNodes: ["designSystem", "registry"],
+        flow: { from: "designSystem", to: "registry" },
+      },
+      {
+        label: "User asks a question",
+        detail: '"Find me hotels in San Francisco for three nights"',
+        activeNodes: ["user", "cloud"],
+        flow: { from: "user", to: "cloud" },
+      },
+      {
+        label: "Tambo cloud agent responds",
+        detail: "Agent selects HotelGrid + HotelCard, generates props matching your Zod schemas",
+        activeNodes: ["cloud", "stream"],
+        flow: { from: "cloud", to: "stream" },
+      },
+      {
+        label: "Props stream into components",
+        detail: "Tambo streams component selection and props directly to your registered components",
+        activeNodes: ["stream", "renderer"],
+        flow: { from: "stream", to: "renderer" },
+      },
+      {
+        label: "Your components render",
+        detail: "Same HotelCard, same styles — Tambo just matched and populated them",
+        activeNodes: ["renderer", "ui"],
+        flow: { from: "renderer", to: "ui" },
+      },
+      {
+        label: "User clicks Book Now",
+        detail: "Action flows through useTamboComponentState back to the cloud agent",
+        activeNodes: ["ui", "cloud"],
+        flow: { from: "ui", to: "cloud" },
+      },
+    ],
   },
 };
 
@@ -866,6 +1055,163 @@ function DataFlowDiagram({ framework }) {
               textAlign: 'right',
             }}>
               {step.from} → {step.to}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AnimatedFlowDiagram({ framework }) {
+  const fw = FRAMEWORKS[framework];
+  const steps = fw.pipelineSteps;
+  const containerRef = useRef(null);
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const stepEls = container.querySelectorAll('[data-step]');
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setActiveStep(Number(entry.target.dataset.step));
+          }
+        });
+      },
+      { root: null, rootMargin: '-40% 0px -40% 0px', threshold: 0 }
+    );
+
+    stepEls.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, [framework]);
+
+  const allNodes = [...new Set(steps.flatMap(s => s.activeNodes))];
+
+  return (
+    <div ref={containerRef}>
+      {/* Sticky diagram area */}
+      <div style={{
+        position: 'sticky',
+        top: 80,
+        zIndex: 10,
+        background: COLORS.cream,
+        padding: '1rem 0',
+        borderBottom: `1px solid ${COLORS.fog}`,
+        marginBottom: '1rem',
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+        }}>
+          {allNodes.map(nodeId => {
+            const node = FLOW_NODES[nodeId];
+            const isActive = steps[activeStep]?.activeNodes.includes(nodeId);
+            const flow = steps[activeStep]?.flow;
+            const isSource = flow?.from === nodeId;
+            const isTarget = flow?.to === nodeId;
+
+            return (
+              <div key={nodeId} style={{
+                padding: '0.4rem 0.75rem',
+                borderRadius: 8,
+                border: `2px solid ${isActive ? fw.color : COLORS.fog}`,
+                background: isActive ? `${fw.color}12` : '#fff',
+                opacity: isActive ? 1 : 0.35,
+                transition: 'all 0.4s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                position: 'relative',
+              }}>
+                {(isSource || isTarget) && (
+                  <div style={{
+                    position: 'absolute',
+                    top: -2, left: -2, right: -2, bottom: -2,
+                    borderRadius: 10,
+                    border: `2px solid ${fw.color}`,
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                  }} />
+                )}
+                <span style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  color: isActive ? fw.color : COLORS.dusk,
+                }}>
+                  {node.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {steps[activeStep]?.flow && (
+          <div style={{
+            textAlign: 'center',
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '0.7rem',
+            color: fw.color,
+            marginTop: '0.5rem',
+            fontWeight: 600,
+          }}>
+            {FLOW_NODES[steps[activeStep].flow.from]?.label} → {FLOW_NODES[steps[activeStep].flow.to]?.label}
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable step descriptions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {steps.map((step, i) => (
+          <div
+            key={i}
+            data-step={i}
+            style={{
+              padding: '1.25rem',
+              borderRadius: 10,
+              border: `1px solid ${i === activeStep ? fw.color : COLORS.fog}`,
+              background: i === activeStep ? `${fw.color}08` : '#fff',
+              transition: 'all 0.3s ease',
+              minHeight: 80,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: i === activeStep ? fw.color : COLORS.fog,
+                color: i === activeStep ? '#fff' : COLORS.dusk,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '0.75rem', fontWeight: 600,
+                flexShrink: 0,
+                transition: 'all 0.3s ease',
+              }}>
+                {i + 1}
+              </div>
+              <div>
+                <div style={{
+                  fontFamily: "'Fraunces', Georgia, serif",
+                  fontWeight: 600, fontSize: '0.95rem',
+                  color: COLORS.warmBlack,
+                  letterSpacing: '-0.02em',
+                }}>
+                  {step.label}
+                </div>
+                <div style={{
+                  fontFamily: "'Source Serif 4', Georgia, serif",
+                  fontSize: '0.85rem',
+                  color: COLORS.dusk,
+                  lineHeight: 1.5,
+                  marginTop: '0.2rem',
+                }}>
+                  {step.detail}
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -1800,6 +2146,10 @@ export default function GenUIExplorer() {
         table::-webkit-scrollbar { height: 6px; }
         table::-webkit-scrollbar-track { background: ${COLORS.fog}; }
         table::-webkit-scrollbar-thumb { background: ${COLORS.dusk}50; border-radius: 3px; }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
       `}</style>
     </div>
   );
