@@ -280,6 +280,48 @@ const rendererCatalog = {
 
 // Data bindings use JSON Pointer paths
 // e.g. { "path": "/hotels/0/name" } → resolved at render time`,
+    wireFormat: `── A2UI Wire Format (JSONL stream) ──
+
+// Line 1: Component tree
+{"surfaceUpdate":{"surfaceId":"main","components":[
+  {"id":"grid","component":{"HotelGrid":{
+    "children":{"explicitList":["c1","c2","c3"]}}}},
+  {"id":"c1","component":{"HotelCard":{
+    "name":{"path":"/hotels/0/name"},
+    "price":{"path":"/hotels/0/price"},
+    "imageUrl":{"path":"/hotels/0/imageUrl"},
+    "rating":{"path":"/hotels/0/rating"},
+    "neighborhood":{"path":"/hotels/0/neighborhood"},
+    "nights":{"path":"/query/nights"},
+    "onBook":{"action":"bookHotel",
+      "params":{"hotelId":{"path":"/hotels/0/id"}}}
+  }}},
+  {"id":"c2","component":{"HotelCard":{...}}},
+  {"id":"c3","component":{"HotelCard":{...}}}
+]}}
+
+// Line 2: Data model (state)
+{"dataModelUpdate":{"surfaceId":"main","contents":[
+  {"key":"query","valueMap":[
+    {"key":"nights","valueString":"3"}]},
+  {"key":"hotels","valueList":[
+    {"valueMap":[
+      {"key":"id","valueString":"hotel-1"},
+      {"key":"name","valueString":"The Marker"},
+      {"key":"neighborhood","valueString":"Union Square"},
+      {"key":"price","valueString":"289"},
+      {"key":"rating","valueString":"4.6"},
+      {"key":"imageUrl","valueString":"https://..."}
+    ]},
+    ...
+  ]}
+]}}
+
+// Line 3: Render signal
+{"beginRendering":{"surfaceId":"main","root":"grid"}}
+
+// Action from user click:
+{"action":"bookHotel","params":{"hotelId":"hotel-1"}}`,
   },
   openui: {
     name: "OpenUI Lang",
@@ -401,6 +443,41 @@ const library = createLibrary({
   components: [HotelGridDef, HotelCardDef],
 })
 // library.prompt() → auto-generated system prompt for the LLM`,
+    wireFormat: `── OpenUI Lang Wire Format (DSL stream) ──
+
+// Compact line-oriented syntax — NOT JSON
+root = HotelGrid([c1, c2, c3])
+c1 = HotelCard(
+  "The Marker",
+  "Union Square",
+  "https://images.unsplash.com/...",
+  289,
+  4.6,
+  3,
+  "Book Now"
+)
+c2 = HotelCard(
+  "Hotel Kabuki",
+  "Japantown",
+  "https://images.unsplash.com/...",
+  215,
+  4.4,
+  3,
+  "Book Now"
+)
+c3 = HotelCard(
+  "The Battery",
+  "Financial District",
+  "https://images.unsplash.com/...",
+  342,
+  4.8,
+  3,
+  "Book Now"
+)
+
+// Zod key order = positional arg order
+// ~67% fewer tokens than the equivalent JSON
+// Actions handled via component event props`,
   },
   jsonrender: {
     name: "json-render",
@@ -530,6 +607,45 @@ const catalog = defineCatalog(schema, {
     },
   },
 })`,
+    wireFormat: `── json-render Wire Format (JSON stream) ──
+
+{
+  "root": "grid-1",
+  "elements": {
+    "grid-1": {
+      "type": "HotelGrid",
+      "children": ["card-1", "card-2", "card-3"]
+    },
+    "card-1": {
+      "type": "HotelCard",
+      "props": {
+        "name": "The Marker",
+        "neighborhood": "Union Square",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 289,
+        "rating": 4.6,
+        "nights": 3
+      },
+      "children": ["book-1"]
+    },
+    "book-1": {
+      "type": "Button",
+      "props": { "label": "Book Now" },
+      "on": { "press": {
+        "action": "bookHotel",
+        "params": { "hotelId": "hotel-1" }
+      }}
+    },
+    "card-2": { "type": "HotelCard", "props": {...}, "children": ["book-2"] },
+    "card-3": { "type": "HotelCard", "props": {...}, "children": ["book-3"] },
+    "book-2": { "type": "Button", "props": {...}, "on": {...} },
+    "book-3": { "type": "Button", "props": {...}, "on": {...} }
+  }
+}
+
+// Flat element tree — no nesting
+// Actions are declarative JSON, not callbacks
+// Can be exported to standalone React via @json-render/codegen`,
   },
   tambo: {
     name: "Tambo",
@@ -647,6 +763,53 @@ function App() {
   )
 }
 // That's it — Tambo handles the rest`,
+    wireFormat: `── Tambo Wire Format (streamed React props) ──
+
+// Tambo streams component selection + props as JSON
+// The agent runtime handles this — you don't see raw wire format
+
+{
+  "component": "HotelGrid",
+  "children": [
+    {
+      "component": "HotelCard",
+      "props": {
+        "name": "The Marker",
+        "neighborhood": "Union Square",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 289,
+        "rating": 4.6,
+        "nights": 3
+      }
+    },
+    {
+      "component": "HotelCard",
+      "props": {
+        "name": "Hotel Kabuki",
+        "neighborhood": "Japantown",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 215,
+        "rating": 4.4,
+        "nights": 3
+      }
+    },
+    {
+      "component": "HotelCard",
+      "props": {
+        "name": "The Battery",
+        "neighborhood": "Financial District",
+        "imageUrl": "https://images.unsplash.com/...",
+        "price": 342,
+        "rating": 4.8,
+        "nights": 3
+      }
+    }
+  ]
+}
+
+// Props stream directly into your registered components
+// Actions flow through useTamboComponentState
+// Agent handles tool calls for bookHotel via toolSchema`,
   },
 };
 
