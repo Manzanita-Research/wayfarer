@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
   "dependencies": {
     "@astrojs/react": "^5.0.0",
     "astro": "^6.0.3",
