@@ -250,7 +250,36 @@ Line 3 → beginRendering:
         "No built-in component library — you bring your own renderers",
         "Requires understanding the adjacency list model and four message types",
       ]
-    }
+    },
+    componentDefinition: `── Your design system components ──
+// These exist already — your HotelCard, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with A2UI ──
+// Map A2UI component names to your renderers
+const rendererCatalog = {
+  "HotelCard": (props, dataModel) => (
+    <HotelCard
+      name={resolveBinding(props.name, dataModel)}
+      price={resolveBinding(props.price, dataModel)}
+      imageUrl={resolveBinding(props.imageUrl, dataModel)}
+      rating={resolveBinding(props.rating, dataModel)}
+      neighborhood={resolveBinding(props.neighborhood, dataModel)}
+      nights={resolveBinding(props.nights, dataModel)}
+      onBook={() => sendAction("bookHotel", {
+        hotelId: resolveBinding(props.hotelId, dataModel)
+      })}
+    />
+  ),
+  "HotelGrid": (props, children) => (
+    <HotelGrid>{children}</HotelGrid>
+  ),
+}
+
+// Data bindings use JSON Pointer paths
+// e.g. { "path": "/hotels/0/name" } → resolved at render time`,
   },
   openui: {
     name: "OpenUI Lang",
@@ -335,7 +364,43 @@ c2 = HotelCard(
         "Thesys C1 hosted API is a separate product — open-source vs hosted lines can blur",
         "Newer project, smaller community (@openuidev packages)",
       ]
-    }
+    },
+    componentDefinition: `── Your design system components ──
+// Same components — your code, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with OpenUI Lang ──
+import { defineComponent, createLibrary } from "@openuidev/react-lang"
+
+const HotelCardDef = defineComponent({
+  name: "HotelCard",
+  description: "Displays a hotel with image, price, rating, and booking action",
+  props: z.object({
+    name: z.string(),
+    neighborhood: z.string(),
+    imageUrl: z.string(),
+    price: z.number(),
+    rating: z.number(),
+    nights: z.number(),
+    ctaLabel: z.string().default("Book Now"),
+  }),
+  component: ({ props }) => <YourHotelCard {...props} onBook={() => handleBook(props)} />,
+})
+
+const HotelGridDef = defineComponent({
+  name: "HotelGrid",
+  description: "Grid container for hotel cards",
+  props: z.object({}),
+  component: ({ children }) => <YourHotelGrid>{children}</YourHotelGrid>,
+})
+
+const library = createLibrary({
+  root: "HotelGrid",
+  components: [HotelGridDef, HotelCardDef],
+})
+// library.prompt() → auto-generated system prompt for the LLM`,
   },
   jsonrender: {
     name: "json-render",
@@ -425,7 +490,46 @@ const catalog = defineCatalog(schema, {
         "Relatively new project, API still evolving",
         "Named slots model has a learning curve",
       ]
-    }
+    },
+    componentDefinition: `── Your design system components ──
+// Same components — your code, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, children }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with json-render ──
+import { defineCatalog } from "@anthropic-ai/json-render"
+
+const catalog = defineCatalog(schema, {
+  components: {
+    HotelCard: {
+      description: "Displays a hotel with image, price, and rating",
+      props: z.object({
+        name: z.string(),
+        neighborhood: z.string(),
+        imageUrl: z.string(),
+        price: z.number(),
+        rating: z.number(),
+        nights: z.number(),
+      }),
+      slots: ["default"],  // for nested children like buttons
+      render: (props, children) => <YourHotelCard {...props}>{children}</YourHotelCard>,
+    },
+    HotelGrid: {
+      description: "Grid of hotel cards",
+      props: z.object({}),
+      slots: ["default"],
+      render: (_, children) => <YourHotelGrid>{children}</YourHotelGrid>,
+    },
+  },
+  actions: {
+    bookHotel: {
+      params: z.object({ hotelId: z.string() }),
+      description: "Book the selected hotel",
+      handler: ({ hotelId }) => handleBooking(hotelId),
+    },
+  },
+})`,
   },
   tambo: {
     name: "Tambo",
@@ -502,7 +606,47 @@ function App() {
         "Self-hosting the backend (not just the SDK) is unclear",
         "Less control over the agent layer vs building your own",
       ]
-    }
+    },
+    componentDefinition: `── Your design system components ──
+// Same components — your code, your styles
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return <Card>…your styled component…</Card>
+}
+
+── Registering with Tambo ──
+const components = [
+  {
+    name: "HotelCard",
+    description: "Displays a hotel with booking action",
+    component: YourHotelCard,
+    propsSchema: z.object({
+      name: z.string(),
+      neighborhood: z.string(),
+      imageUrl: z.string(),
+      price: z.number(),
+      rating: z.number(),
+      nights: z.number(),
+    }),
+    toolSchema: z.object({
+      book: z.object({ hotelId: z.string() }),
+    }),
+  },
+  {
+    name: "HotelGrid",
+    description: "Grid container for hotel cards",
+    component: YourHotelGrid,
+    propsSchema: z.object({}),
+  },
+]
+
+function App() {
+  return (
+    <TamboProvider components={components}>
+      <YourApp />
+    </TamboProvider>
+  )
+}
+// That's it — Tambo handles the rest`,
   },
 };
 
