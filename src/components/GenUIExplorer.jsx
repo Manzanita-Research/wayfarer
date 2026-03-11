@@ -1015,54 +1015,6 @@ const DIMENSIONS = [
 
 // ---- Components ----
 
-function DataFlowDiagram({ framework }) {
-  const fw = FRAMEWORKS[framework];
-  const steps = fw.dataFlow;
-  
-  return (
-    <div style={{ padding: '1.5rem 0' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {steps.map((step, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: fw.color, color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: '0.75rem', fontWeight: 600,
-              flexShrink: 0,
-            }}>
-              {i + 1}
-            </div>
-            <div style={{
-              flex: 1, padding: '0.5rem 0.75rem',
-              background: i % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
-              borderRadius: 6,
-              fontFamily: "'Source Serif 4', Georgia, serif",
-              fontSize: '0.9rem',
-              color: COLORS.warmBlack,
-              lineHeight: 1.4,
-            }}>
-              {step.label}
-            </div>
-            <div style={{
-              fontFamily: "'IBM Plex Mono', monospace",
-              fontSize: '0.65rem',
-              color: COLORS.dusk,
-              opacity: 0.7,
-              flexShrink: 0,
-              width: 80,
-              textAlign: 'right',
-            }}>
-              {step.from} → {step.to}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function AnimatedFlowDiagram({ framework }) {
   const fw = FRAMEWORKS[framework];
   const steps = fw.pipelineSteps;
@@ -1961,7 +1913,7 @@ export default function GenUIExplorer() {
               })}
             </div>
 
-            <SectionHeader sub="The same question — 'Find me a hotel in Paris' — handled by each framework. What does the developer write? How does data flow?">
+            <SectionHeader sub="The same question — 'Find me hotels in San Francisco for three nights' — handled by each framework. See the Pipeline view for the full walkthrough.">
               One Query, Four Architectures
             </SectionHeader>
 
@@ -2001,7 +1953,7 @@ export default function GenUIExplorer() {
                 }}>
                   Data Flow: {fw.name}
                 </div>
-                <DataFlowDiagram framework={activeFramework} />
+                <AnimatedFlowDiagram framework={activeFramework} />
               </div>
               <div style={{
                 borderTop: `1px solid ${COLORS.fog}`,
@@ -2076,7 +2028,7 @@ export default function GenUIExplorer() {
               border: `1px solid ${COLORS.fog}`, borderRadius: 10,
               padding: '1.25rem', marginBottom: '1.5rem',
             }}>
-              <DataFlowDiagram framework={activeFramework} />
+              <AnimatedFlowDiagram framework={activeFramework} />
             </div>
 
             <SectionHeader>What You Write</SectionHeader>
