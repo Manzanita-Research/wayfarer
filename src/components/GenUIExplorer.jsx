@@ -13,6 +13,127 @@ const COLORS = {
   dusk: '#5C5C5C',
 };
 
+const SAMPLE_HOTELS = [
+  {
+    id: 'hotel-1',
+    name: 'The Marker',
+    neighborhood: 'Union Square',
+    imageUrl: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=250&fit=crop',
+    price: 289,
+    rating: 4.6,
+    nights: 3,
+  },
+  {
+    id: 'hotel-2',
+    name: 'Hotel Kabuki',
+    neighborhood: 'Japantown',
+    imageUrl: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=250&fit=crop',
+    price: 215,
+    rating: 4.4,
+    nights: 3,
+  },
+  {
+    id: 'hotel-3',
+    name: 'The Battery',
+    neighborhood: 'Financial District',
+    imageUrl: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&h=250&fit=crop',
+    price: 342,
+    rating: 4.8,
+    nights: 3,
+  },
+];
+
+function HotelCard({ name, neighborhood, imageUrl, price, rating, nights, onBook }) {
+  return (
+    <div style={{
+      border: `1px solid ${COLORS.fog}`,
+      borderRadius: 10,
+      overflow: 'hidden',
+      background: '#fff',
+      transition: 'box-shadow 0.2s ease',
+    }}>
+      <div style={{
+        width: '100%',
+        height: 160,
+        background: `url(${imageUrl}) center/cover`,
+        borderBottom: `1px solid ${COLORS.fog}`,
+      }} />
+      <div style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{
+            fontFamily: "'Fraunces', Georgia, serif",
+            fontWeight: 600, fontSize: '1rem',
+            color: COLORS.warmBlack,
+            letterSpacing: '-0.02em',
+          }}>
+            {name}
+          </div>
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '0.7rem', color: COLORS.ochre,
+          }}>
+            {rating}
+          </div>
+        </div>
+        <div style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: '0.7rem', color: COLORS.dusk,
+          marginBottom: '0.75rem',
+        }}>
+          {neighborhood}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              fontWeight: 600, fontSize: '1.1rem',
+              color: COLORS.warmBlack,
+            }}>
+              ${price}
+            </span>
+            <span style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.65rem', color: COLORS.dusk,
+            }}>
+              {' '}/night · {nights} nights = ${price * nights}
+            </span>
+          </div>
+          <button
+            onClick={() => onBook?.()}
+            style={{
+              padding: '0.4rem 1rem',
+              background: COLORS.terracotta,
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Book Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HotelGrid({ hotels }) {
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+      gap: '1rem',
+    }}>
+      {hotels.map(hotel => (
+        <HotelCard key={hotel.id} {...hotel} />
+      ))}
+    </div>
+  );
+}
+
 // Framework data
 const FRAMEWORKS = {
   a2ui: {
