@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_episodic-memory_episodic-memory__search",
+      "Bash(linctl whoami:*)",
+      "Bash(linctl team:*)",
+      "Bash(linctl project:*)",
+      "Bash(linctl label:*)",
+      "Bash(linctl issue:*)"
+    ]
+  }
+}
