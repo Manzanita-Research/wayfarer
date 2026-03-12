@@ -1,4 +1,13 @@
 {
+  "name": "@manzanita-research/wayfarer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generative UI frameworks, explored — a visual guide to the emerging landscape",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manzanita-research/wayfarer"
+  },
+  "license": "MIT",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
