@@ -166,6 +166,13 @@ const FRAMEWORKS = {
     crossPlatform: "Angular, Flutter, Lit/Web Components (stable); React, SwiftUI, Vue (planned)",
     hosting: "Self-hosted (open spec)",
     trustModel: "Designed for untrusted agents across trust boundaries",
+    llmOutputFormat: "JSONL — streaming adjacency list. Three message types: component tree, data model, render signal. Each line is independently parseable.",
+    platformReach: "Angular, Flutter, Lit/Web Components stable. React, SwiftUI, Vue planned. The spec is renderer-agnostic by design.",
+    agentRuntime: "You run everything. A2UI is a protocol — bring your own agent, LLM, and infrastructure.",
+    componentAwareness: "The LLM generates against a catalog of component names. It knows the component tree structure but data binding is abstracted via JSON Pointer paths.",
+    actionModel: "Declarative. Actions are JSON messages sent back to the agent — no code execution on the client. Designed for untrusted agents.",
+    ejectionStory: "Strong. Open spec (Apache 2.0). Your components are standard code. Switch renderers or protocols without rewriting UI.",
+    dataBinding: "JSON Pointer paths into a shared data model. Components reference data by path (e.g. /hotels/0/name), resolved at render time.",
     summary: "A2UI is the most protocol-oriented approach. It's a specification, not a library — think of it like HTML for agent UIs. Agents send declarative component descriptions as streaming JSONL, and any renderer can interpret them. The key insight is trust boundaries: A2UI is designed for scenarios where the agent generating UI is not controlled by the app developer. Note: v0.8 (stable) and v0.9 (draft, Q1 2026) are significantly different — v0.9 renames message types (surfaceUpdate → updateComponents, beginRendering → createSurface), flattens the component structure, and switches to plain JSON for data models. The examples here show v0.8, the current stable spec.",
     dataFlow: [
       { label: "User sends message", from: "user", to: "agent" },
@@ -397,6 +404,13 @@ const rendererCatalog = {
     crossPlatform: "React (web)",
     hosting: "Self-hosted (open source) or Thesys C1 hosted API (OpenAI-compatible)",
     trustModel: "Component library defines the guardrails",
+    llmOutputFormat: "Custom DSL — line-oriented assignment syntax, not JSON. Positional args mapped from Zod key order. ~67% fewer tokens than JSON equivalents.",
+    platformReach: "React only (@openuidev/react-lang). C1 hosted API is framework-agnostic on the wire, but the renderer is React.",
+    agentRuntime: "You run the LLM calls. The framework handles parsing. Self-hosted, or use Thesys C1 hosted API.",
+    componentAwareness: "The LLM gets an auto-generated system prompt from your component library. It learns your API through library.prompt() — fully automated.",
+    actionModel: "Component event props. Actions flow through your React component callbacks, same as any React app.",
+    ejectionStory: "Good. Open source SDK. Components are standard React. The DSL layer is the coupling point — you'd need to swap the parser.",
+    dataBinding: "Direct props. Zod-validated values passed as positional args in the DSL, mapped to React props.",
     summary: "OpenUI Lang is a custom DSL — not JSON, not JSX — designed for LLMs to generate UI descriptions in fewer tokens. The developer defines components with defineComponent and assembles them into a library with createLibrary (both from @openuidev/react-lang). The library auto-generates an LLM system prompt. The LLM responds in OpenUI Lang's compact assignment syntax, which a streaming parser converts to React components. Benchmarks show up to 67% fewer tokens than JSON alternatives. Thesys also offers C1, a hosted API (OpenAI-compatible) that can generate UI using these components.",
     dataFlow: [
       { label: "Developer defines components (defineComponent + Zod schemas)", from: "dev", to: "library" },
@@ -597,6 +611,13 @@ c3 = HotelCard(
     crossPlatform: "React, React Native, Vue",
     hosting: "Self-hosted (open source)",
     trustModel: "AI can only use components defined in the catalog",
+    llmOutputFormat: "JSON — flat element tree with typed props and declarative action bindings. Elements reference children by ID, not nesting.",
+    platformReach: "React, React Native, and Vue renderers available. Broadest multi-framework support of the SDK-based options.",
+    agentRuntime: "You run the LLM calls and rendering. Fully self-hosted, no cloud dependency.",
+    componentAwareness: "The LLM gets your catalog schema as a system prompt. It knows component names, prop types, and available actions.",
+    actionModel: "Declarative JSON. Actions defined in the catalog with typed params. Handler functions run client-side.",
+    ejectionStory: "Strong. Code export via @json-render/codegen — eject any generated UI to standalone React with zero runtime dependency.",
+    dataBinding: "Rich binding system. $state, $bindState, $item, $bindItem, $template for lists, conditional rendering, two-way binding.",
     summary: "json-render is Vercel's take — pure JSON, heavily catalog-constrained, with a rich built-in component library (39 components, 6 actions). The standout feature is code export: you can eject any generated UI into standalone React code with no runtime dependency. It uses a flat element tree (not nested JSON) which is friendlier for streaming parsers.",
     dataFlow: [
       { label: "Developer defines catalog (components + actions)", from: "dev", to: "catalog" },
@@ -809,6 +830,13 @@ const catalog = defineCatalog(schema, {
     crossPlatform: "React (web)",
     hosting: "Cloud hosted (free tier) or self-hosted open source",
     trustModel: "Agent inherits user's auth permissions",
+    llmOutputFormat: "JSON — component name + props object. The cloud agent selects components and generates props matching your Zod schemas.",
+    platformReach: "React only (@tambo-ai/react). No cross-platform story currently.",
+    agentRuntime: "Tambo cloud runs the agent by default. You send messages, their backend selects components and generates props. Self-host escape hatch unclear.",
+    componentAwareness: "The agent knows your component names and Zod schemas. Component selection and prop generation happen in Tambo's cloud runtime.",
+    actionModel: "Agent round-trip. Actions flow through useTamboComponentState back to the cloud agent, which can respond with new UI.",
+    ejectionStory: "Moderate. React SDK is open source. Components are standard React. But the cloud agent runtime is the coupling — unclear self-host path.",
+    dataBinding: "Direct props + built-in state. Props from agent, plus useTamboComponentState for component-local state that syncs back to agent.",
     mcpSupport: "Built-in MCP support",
     summary: "Tambo wraps your React app in a TamboProvider and lets you register existing components with Zod schemas. It handles the agent runtime, streaming, state management (via useTamboComponentState), conversation storage, auth, and MCP integration. The React SDK is open source. It has a hosted cloud backend, though the degree to which the backend is self-hostable is unclear.",
     dataFlow: [
@@ -1003,14 +1031,13 @@ function App() {
 };
 
 const DIMENSIONS = [
-  { key: 'kind', label: 'What It Is' },
-  { key: 'uiFormat', label: 'UI Format' },
-  { key: 'renderers', label: 'Renderers' },
-  { key: 'streaming', label: 'Streaming' },
-  { key: 'crossPlatform', label: 'Cross-Platform' },
-  { key: 'security', label: 'Security Model' },
-  { key: 'hosting', label: 'Hosting' },
-  { key: 'trustModel', label: 'Trust Model' },
+  { key: 'llmOutputFormat', label: 'LLM Output Format' },
+  { key: 'platformReach', label: 'Platform Reach' },
+  { key: 'agentRuntime', label: 'Agent Runtime' },
+  { key: 'componentAwareness', label: 'Component Awareness' },
+  { key: 'actionModel', label: 'Action Model' },
+  { key: 'ejectionStory', label: 'Ejection Story' },
+  { key: 'dataBinding', label: 'Data Binding' },
 ];
 
 // ---- Components ----
