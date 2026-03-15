@@ -4,5 +4,11 @@
   "compatibility_date": "2025-09-27",
   "assets": {
     "directory": "dist"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "wayfarer.manzanita.dev",
+      "custom_domain": true
+    }
+  ]
 }
